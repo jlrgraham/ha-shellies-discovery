@@ -69,8 +69,8 @@ def on_connect(client, userdata, flags, rc):
 def on_message(client, userdata, msg):
     event = json.loads(msg.payload.decode('utf-8'))
 
+    logger.debug(f"MQTT: Message received: Topic: {msg.topic}, QOS: {msg.qos}, Retain Flag: {msg.retain}")
     logger.debug(f"MQTT: Message received: {str(event)}")
-    logger.debug(f"MQTT: Message topic: {msg.topic}, qos: {msg.qos}, retain flag: {msg.retain}")
 
     exec(
         compiled,

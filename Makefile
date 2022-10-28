@@ -13,6 +13,7 @@ run:
 	docker run \
 		-it \
 		--rm \
+		-e LOG_LEVEL=DEBUG \
 		-e MQTT_BROKER \
 		-e MQTT_USERNAME \
 		-e MQTT_PASSWORD \
