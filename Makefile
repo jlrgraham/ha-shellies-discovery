@@ -19,3 +19,12 @@ run:
 		-e MQTT_PASSWORD \
 		-e HA_DISCOVERY_PREFIX \
 		$(DOCKER_NAME)
+
+black:
+	docker run \
+		-it \
+		--rm \
+		-v ${PWD}:/app \
+		--workdir /app \
+		python:3 \
+		bash -c "pip install black && black run.py"

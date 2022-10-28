@@ -8,13 +8,17 @@ import os
 
 logger = logging.getLogger(__name__)
 log_handler = logging.StreamHandler()
-log_formatter = logging.Formatter('%(asctime)s [%(name)-12s] %(levelname)-8s %(message)s')
+log_formatter = logging.Formatter(
+    "%(asctime)s [%(name)-12s] %(levelname)-8s %(message)s"
+)
 log_handler.setFormatter(log_formatter)
 logger.addHandler(log_handler)
-logger.setLevel(os.getenv('LOG_LEVEL', default='INFO').upper())
+logger.setLevel(os.getenv("LOG_LEVEL", default="INFO").upper())
 
 
-SHELLEY_ANNOUNCE_MQTT_PREFIX = os.getenv("SHELLEY_ANNOUNCE_MQTT_PREFIX", default="shellies")
+SHELLEY_ANNOUNCE_MQTT_PREFIX = os.getenv(
+    "SHELLEY_ANNOUNCE_MQTT_PREFIX", default="shellies"
+)
 
 MQTT_BROKER = os.getenv("MQTT_BROKER", default="mqtt")
 MQTT_PORT = os.getenv("MQTT_PORT", default=8883)
@@ -38,9 +42,13 @@ class FakeHassServices(object):
                 qos=service_data.get("qos", 0),
             )
             if result != 0:
-                logger.error(f"MQTT: Error publishing discovery, result: {result}, topic: {service_data.get('topic')}")
+                logger.error(
+                    f"MQTT: Error publishing discovery, result: {result}, topic: {service_data.get('topic')}"
+                )
             else:
-                logger.info(f"MQTT: Published discovery, topic: {service_data.get('topic')}")
+                logger.info(
+                    f"MQTT: Published discovery, topic: {service_data.get('topic')}"
+                )
 
 
 class FakeHass(object):
@@ -49,11 +57,11 @@ class FakeHass(object):
 
 
 # Load the source from upstream
-filename = 'python_scripts/shellies_discovery.py'
+filename = "python_scripts/shellies_discovery.py"
 with open(filename, encoding="utf8") as f:
     source = f.read()
 
-compiled = compile(source, filename=filename, mode='exec')
+compiled = compile(source, filename=filename, mode="exec")
 
 
 def on_connect(client, userdata, flags, rc):
@@ -67,22 +75,24 @@ def on_connect(client, userdata, flags, rc):
 
 
 def on_message(client, userdata, msg):
-    event = json.loads(msg.payload.decode('utf-8'))
+    event = json.loads(msg.payload.decode("utf-8"))
 
-    logger.debug(f"MQTT: Message received: Topic: {msg.topic}, QOS: {msg.qos}, Retain Flag: {msg.retain}")
+    logger.debug(
+        f"MQTT: Message received: Topic: {msg.topic}, QOS: {msg.qos}, Retain Flag: {msg.retain}"
+    )
     logger.debug(f"MQTT: Message received: {str(event)}")
 
     exec(
         compiled,
         {
             "data": {
-                'id': event.get('id'),
-                'mac': event.get('mac'),
-                'fw_ver': event.get('fw_ver'),
-                'model': event.get('model'),
-                'mode': event.get('mode', ''),
-                'host': event.get('ip'),
-                'discovery_prefix': HA_DISCOVERY_PREFIX,
+                "id": event.get("id"),
+                "mac": event.get("mac"),
+                "fw_ver": event.get("fw_ver"),
+                "model": event.get("model"),
+                "mode": event.get("mode", ""),
+                "host": event.get("ip"),
+                "discovery_prefix": HA_DISCOVERY_PREFIX,
             },
             "logger": logger,
             "hass": FakeHass(client),
