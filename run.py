@@ -11,7 +11,7 @@ log_handler = logging.StreamHandler()
 log_formatter = logging.Formatter('%(asctime)s [%(name)-12s] %(levelname)-8s %(message)s')
 log_handler.setFormatter(log_formatter)
 logger.addHandler(log_handler)
-logger.setLevel(logging.INFO)
+logger.setLevel(os.environ.get('LOG_LEVEL', 'INFO').upper())
 
 
 SHELLEY_ANNOUNCE_MQTT_PREFIX = os.getenv("SHELLEY_ANNOUNCE_MQTT_PREFIX", "shellies")
