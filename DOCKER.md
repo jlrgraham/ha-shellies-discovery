@@ -13,6 +13,7 @@ All configuration elements are driven by environmental variables inside the cont
 | Variable | Description | Default |
 | -------- | ----------- | ------- |
 | `SHELLEY_ANNOUNCE_MQTT_PREFIX` | The prefix under which Shelly device(s) publish data. | `shellies` |
+| `LOG_LEVEL` | Sets the Python log level for messages. | `INFO` |
 | `MQTT_BROKER` | The hostname or IP of the MQTT broker. | `mqtt` |
 | `MQTT_PORT` | The connection port on the MQTT broker.  If set to 8883 TLS is automatically used. | 8883 |
 | `MQTT_CLIENT_ID` | The client name given to the MQTT broker.  See MQTT Connections for more details. | `ha-shellies-discovery` |
