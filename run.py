@@ -22,7 +22,7 @@ SHELLEY_ANNOUNCE_MQTT_PREFIX = os.getenv(
 
 MQTT_BROKER = os.getenv("MQTT_BROKER", default="mqtt")
 MQTT_PORT = os.getenv("MQTT_PORT", default=8883)
-MQTT_CLIENT_ID = os.getenv("MQTT_CLIENT_ID", default=f"ha-shellies-discovery")
+MQTT_CLIENT_ID = os.getenv("MQTT_CLIENT_ID", default="ha-shellies-discovery")
 MQTT_USERNAME = os.getenv("MQTT_USERNAME", default=None)
 MQTT_PASSWORD = os.getenv("MQTT_PASSWORD", default=None)
 
@@ -49,6 +49,10 @@ class FakeHassServices(object):
                 logger.info(
                     f"MQTT: Published discovery, topic: {service_data.get('topic')}"
                 )
+        else:
+            logger.warn(
+                f"FakeHassServices: Unhandled service/action pair: {service}/{action}"
+            )
 
 
 class FakeHass(object):
@@ -82,18 +86,20 @@ def on_message(client, userdata, msg):
     )
     logger.debug(f"MQTT: Message received: {str(event)}")
 
+    ha_discovery_payload = {
+        "id": event.get("id"),
+        "mac": event.get("mac"),
+        "fw_ver": event.get("fw_ver"),
+        "model": event.get("model"),
+        "mode": event.get("mode", ""),
+        "host": event.get("ip"),
+        "discovery_prefix": HA_DISCOVERY_PREFIX,
+    }
+
     exec(
         compiled,
         {
-            "data": {
-                "id": event.get("id"),
-                "mac": event.get("mac"),
-                "fw_ver": event.get("fw_ver"),
-                "model": event.get("model"),
-                "mode": event.get("mode", ""),
-                "host": event.get("ip"),
-                "discovery_prefix": HA_DISCOVERY_PREFIX,
-            },
+            "data": ha_discovery_payload,
             "logger": logger,
             "hass": FakeHass(client),
         },
