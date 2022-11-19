@@ -35,3 +35,55 @@ The MQTT client ID can be configured with the `MQTT_CLIENT_ID` variable.  This s
 #### TLS
 
 If the MQTT broker port configuration is set to 8883 then the connector will automatically attempt to enable TLS for the connection to the broker.  The standard [Python certifi package](https://pypi.org/project/certifi/) will be used for CA roots, so public certs (ie: Let's Encrypt + others) should just work.
+
+## Usage Examples
+
+### Docker (Usually Fot Testing)
+
+    docker run \
+        -it \
+        --rm \
+        -e MQTT_BROKER=my.mqtt.hostname.com \
+        -e MQTT_USERNAME=myusername \
+        -e MQTT_PASSWORD=secret \
+        docker.io/jlrgraham/ha-shellies-discovery:latest
+
+### Kubernetes StatefulSet
+
+Assuming that a Kubernetes secret with the MQTT username and password has been created at `ha-shellies-discovery-auth`:
+
+    ---
+    apiVersion: apps/v1
+    kind: StatefulSet
+    metadata:
+      name: ha-shellies-discovery
+    spec:
+      selector:
+        matchLabels:
+          app: ha-shellies-discovery
+      serviceName: ha-shellies-discovery
+      replicas: 1
+      template:
+        metadata:
+          labels:
+            app: ha-shellies-discovery
+        spec:
+          terminationGracePeriodSeconds: 0
+          containers:
+            - env:
+                - name: MQTT_BROKER
+                  value: my.mqtt.hostname.com
+                - name: MQTT_USERNAME
+                  valueFrom:
+                    secretKeyRef:
+                      key: mqtt_username
+                      name: ha-shellies-discovery-auth
+                - name: MQTT_PASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      key: mqtt_password
+                      name: ha-shellies-discovery-auth
+              image: docker.io/jlrgraham/ha-shellies-discovery:latest
+              imagePullPolicy: Always
+              name: ha-shellies-discovery
+          restartPolicy: Always
