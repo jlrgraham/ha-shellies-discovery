@@ -20,7 +20,7 @@ All configuration elements are driven by environmental variables inside the cont
 | `MQTT_USERNAME` | The username for the MQTT broker. | `None` |
 | `MQTT_PASSWORD` | The password for the MQTT broker. | `None` |
 | `HA_DISCOVERY_PREFIX` | The configured Home Assistant discovery prefix. | `homeassistant` |
-
+| `HA_STATUS_TOPIC` | The topic where Home Assistant will publish status. | `None` |
 
 ### MQTT Connections
 
@@ -35,6 +35,10 @@ The MQTT client ID can be configured with the `MQTT_CLIENT_ID` variable.  This s
 #### TLS
 
 If the MQTT broker port configuration is set to 8883 then the connector will automatically attempt to enable TLS for the connection to the broker.  The standard [Python certifi package](https://pypi.org/project/certifi/) will be used for CA roots, so public certs (ie: Let's Encrypt + others) should just work.
+
+### Home Assistant Status
+
+Many Shelly first generation devices do not place the MQTT retain flag on their status topics, this causes Home Assistant to think they are offline after a restart of Home Assistant (the `online` topic disappears from Home Assistant's view).  To combat this we can watch for Home Assistant to startup in MQTT the `HA_STATUS_TOPIC` setting, and then publish out an announce request to the `SHELLEY_ANNOUNCE_MQTT_PREFIX/command` topic.
 
 ## Usage Examples
 
