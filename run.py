@@ -27,6 +27,8 @@ MQTT_USERNAME = os.getenv("MQTT_USERNAME", default=None)
 MQTT_PASSWORD = os.getenv("MQTT_PASSWORD", default=None)
 
 HA_DISCOVERY_PREFIX = os.getenv("HA_DISCOVERY_PREFIX", default="homeassistant")
+HA_STATUS_TOPIC = os.getenv("HA_STATUS_TOPIC", default=None)
+
 
 
 class FakeHassServices(object):
@@ -74,36 +76,59 @@ def on_connect(client, userdata, flags, rc):
         announce_subscribe = f"{SHELLEY_ANNOUNCE_MQTT_PREFIX}/announce"
         logger.info(f"MQTT: Subscribe: {announce_subscribe}")
         client.subscribe(announce_subscribe)
+
+        if HA_STATUS_TOPIC is not None:
+            logger.info(f"MQTT: Subscribe: {HA_STATUS_TOPIC}")
+            client.subscribe(HA_STATUS_TOPIC)
     else:
         logger.error(f"MQTT: Failed to connect, rc: {rc}")
 
 
 def on_message(client, userdata, msg):
-    event = json.loads(msg.payload.decode("utf-8"))
+    payload = msg.payload.decode("utf-8")
 
     logger.debug(
         f"MQTT: Message received: Topic: {msg.topic}, QOS: {msg.qos}, Retain Flag: {msg.retain}"
     )
-    logger.debug(f"MQTT: Message received: {str(event)}")
+    logger.debug(f"MQTT: Message received: {str(payload)}")
 
-    ha_discovery_payload = {
-        "id": event.get("id"),
-        "mac": event.get("mac"),
-        "fw_ver": event.get("fw_ver"),
-        "model": event.get("model"),
-        "mode": event.get("mode", ""),
-        "host": event.get("ip"),
-        "discovery_prefix": HA_DISCOVERY_PREFIX,
-    }
+    fakehass = FakeHass(client)
 
-    exec(
-        compiled,
-        {
-            "data": ha_discovery_payload,
-            "logger": logger,
-            "hass": FakeHass(client),
-        },
-    )
+    if msg.topic == HA_STATUS_TOPIC:
+        if payload == "online":
+            logger.info("MQTT: Detected HA now online, will ask devices to announce.")
+
+            fakehass.services.call(
+                service="mqtt",
+                action="publish",
+                service_data={
+                    "topic": f"{SHELLEY_ANNOUNCE_MQTT_PREFIX}/command",
+                    "payload": "announce",
+                    "qos": 2,
+                },
+            )
+
+    else:
+        event = json.loads(payload)
+
+        ha_discovery_payload = {
+            "id": event.get("id"),
+            "mac": event.get("mac"),
+            "fw_ver": event.get("fw_ver"),
+            "model": event.get("model"),
+            "mode": event.get("mode", ""),
+            "host": event.get("ip"),
+            "discovery_prefix": HA_DISCOVERY_PREFIX,
+        }
+
+        exec(
+            compiled,
+            {
+                "data": ha_discovery_payload,
+                "logger": logger,
+                "hass": fakehass,
+            },
+        )
 
 
 def run():
