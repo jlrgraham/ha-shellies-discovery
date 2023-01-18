@@ -52,21 +52,23 @@ Many Shelly first generation devices do not place the MQTT retain flag on their 
         -e MQTT_PASSWORD=secret \
         docker.io/jlrgraham/ha-shellies-discovery:latest
 
-### Kubernetes StatefulSet
+### Kubernetes Deployment
 
 Assuming that a Kubernetes secret with the MQTT username and password has been created at `ha-shellies-discovery-auth`:
 
     ---
     apiVersion: apps/v1
-    kind: StatefulSet
+    kind: Deployment
     metadata:
       name: ha-shellies-discovery
     spec:
+      replicas: 1
+      revisionHistoryLimit: 0
       selector:
         matchLabels:
           app: ha-shellies-discovery
-      serviceName: ha-shellies-discovery
-      replicas: 1
+      strategy:
+        type: Recreate
       template:
         metadata:
           labels:
