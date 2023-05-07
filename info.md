@@ -91,6 +91,9 @@ python_script:
   trigger:
     platform: mqtt
     topic: shellies/announce
+  condition:
+    - condition: template
+      value_template: "{{ trigger.payload_json.gen is not defined }}"
   action:
     service: python_script.shellies_discovery
     data:
@@ -129,6 +132,9 @@ python_script:
   trigger:
     platform: mqtt
     topic: shellies/announce
+  condition:
+    - condition: template
+      value_template: "{{ trigger.payload_json.gen is not defined }}"
   action:
     service: python_script.shellies_discovery
     data:
@@ -140,6 +146,8 @@ python_script:
       host: '{{ trigger.payload_json.ip }}'
       discovery_prefix: 'hass'
       qos: 2
+      shellytrv-84FD75:
+        default_heating_temperature: 21
       shelly1-AABB9900:
         relay-0: "light"
         ext-temperature-0: true
@@ -215,7 +223,6 @@ key | optional | type | default | description
 `qos` | True | integer | `0` | MQTT QoS, you can use `0`, `1` or `2`
 `ignored_devices` | True | list | `None` | list of devices to ignore
 `ignore_device_model` | True | boolean | `false` | ignore device model to generate device name
-`use_kwh` | True | boolean | `false` | `true`, `false` | does energy sensors use kWh unit instead of Wh
 `optimistic` | True | boolean | `false` | `optimistic` | `optimistic` option for cover entities
 
 ## Device arguments
@@ -235,6 +242,7 @@ key | optional | type | default | possible values | description
 `powered` | True | string | `battery` | `ac`, `battery` | `ac` or `battery` powered for Shelly H&T, Motion, Sense and Button1
 `expire_after` | True | integer | 51840 | | [expire after](https://www.home-assistant.io/integrations/binary_sensor.mqtt/#expire_after) for battery powered sensors in seconds
 `use_fahrenheit` | True | boolean | `false` | `true`, `false` | whether the temperature sensor is configured in Fahrenheit for H&T, Flood, Motion2 or DW2
+`default_heating_temperature` | True | float | `20` | | default target temperature after changing from OFF to HEAT mode
 
 [forum]: https://community.home-assistant.io/t/shellies-discovery-script/94048
 [forum-shield]: https://img.shields.io/badge/community-forum-brightgreen.svg?style=popout
