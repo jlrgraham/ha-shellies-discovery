@@ -7,6 +7,8 @@ ATTR_RELAY = "relay"
 ATTR_ROLLER = "roller"
 ATTR_SHELLY = "Shelly"
 
+ATTR_AVAILABILITY_EXTRA = "availability_extra"
+
 BUTTON_MUTE = "mute"
 BUTTON_RESTART = "restart"
 BUTTON_SELF_TEST = "self_test"
@@ -47,6 +49,7 @@ DEVICE_CLASS_AWNING = "awning"
 DEVICE_CLASS_BATTERY = "battery"
 DEVICE_CLASS_BATTERY_CHARGING = "battery_charging"
 DEVICE_CLASS_BLIND = "blind"
+DEVICE_CLASS_BUTTON = "button"
 DEVICE_CLASS_COLD = "cold"
 DEVICE_CLASS_CONNECTIVITY = "connectivity"
 DEVICE_CLASS_CURRENT = "current"
@@ -55,6 +58,7 @@ DEVICE_CLASS_DAMPER = "damper"
 DEVICE_CLASS_DOOR = "door"
 DEVICE_CLASS_ENERGY = "energy"
 DEVICE_CLASS_ENUM = "enum"
+DEVICE_CLASS_FIRMWARE = "firmware"
 DEVICE_CLASS_GARAGE = "garage"
 DEVICE_CLASS_GARAGE_DOOR = "garage_door"
 DEVICE_CLASS_GAS = "gas"
@@ -125,6 +129,7 @@ KEY_EFFECT_VALUE_TEMPLATE = "fx_val_tpl"
 KEY_ENABLED_BY_DEFAULT = "en"
 KEY_ENTITY_CATEGORY = "ent_cat"
 KEY_ENTITY_PICTURE = "ent_pic"
+KEY_EVENT_TYPES = "evt_typ"
 KEY_EXPIRE_AFTER = "exp_aft"
 KEY_FORCE_UPDATE = "frc_upd"
 KEY_HW_VERSION = "hw"
@@ -392,10 +397,12 @@ SENSOR_INPUT_1 = "input 1"
 SENSOR_INPUT_2 = "input 2"
 SENSOR_INPUT_3 = "input 3"
 SENSOR_IP = "ip"
+SENSOR_IX_SUM_CURRENT = "ix_sum_current"
 SENSOR_LAST_RESTART = "last_restart"
 SENSOR_LOADERROR = "loaderror"
 SENSOR_LUX = "lux"
 SENSOR_MOTION = "motion"
+SENSOR_N_CURRENT = "n_current"
 SENSOR_OPENING = "opening"
 SENSOR_OPERATION = "operation"
 SENSOR_OVERLOAD = "overload"
@@ -450,6 +457,7 @@ TOPIC_INPUT_0 = "~input/0"
 TOPIC_INPUT_1 = "~input/1"
 TOPIC_INPUT_2 = "~input/2"
 TOPIC_INPUT_3 = "~input/3"
+TOPIC_IX_SUM_CURRENT = "~emeter_n/ixsum"
 TOPIC_LIGHT_ENERGY = "~light/{light_id}/energy"
 TOPIC_LIGHT_ENERGY_RGBW2_COLOR = "~color/{light_id}/energy"
 TOPIC_LIGHT_ENERGY_RGBW2_WHITE = "~white/{light_id}/energy"
@@ -470,6 +478,7 @@ TOPIC_METER_TOTAL = "~emeter/{meter_id}/total"
 TOPIC_METER_TOTAL_RETURNED = "~emeter/{meter_id}/total_returned"
 TOPIC_METER_VOLTAGE = "~emeter/{meter_id}/voltage"
 TOPIC_MUTE = "~sensor/mute"
+TOPIC_N_CURRENT = "~emeter_n/current"
 TOPIC_ONLINE = "~online"
 TOPIC_OVERLOAD = "~overload"
 TOPIC_OVERPOWER = "~overpower"
@@ -511,14 +520,17 @@ TOPIC_WHITE_STATUS = "~white/{light_id}/status"
 TPL_ACCELERATED_HEATING = "{{value_json.thermostats.0.target_t.accelerated_heating}}"
 TPL_ACTION_TEMPLATE = "{{%if value_json.thermostats.0.target_t.value<={min_temp}%}}off{{%elif value_json.thermostats.0.pos==0%}}idle{{%else%}}heating{{%endif%}}"
 TPL_AUTOMATIC_TEMPERATURE_CONTROL = (
-    "{%if value_json.target_t.enabled==true%}ON{%else%}OFF{%endif%}"
+    "{%if value_json.target_t.enabled%}ON{%else%}OFF{%endif%}"
 )
 TPL_BATTERY_FROM_INFO = "{{value_json.bat.value}}"
 TPL_BATTERY_FROM_JSON = "{{value_json.bat}}"
 TPL_BOOST_MINUTES = "{{value_json.thermostats.0.boost_minutes}}"
-TPL_CALIBRATED = "{%if value_json.calibrated==true%}ON{%else%}OFF{%endif%}"
-TPL_CHARGER = "{%if value_json.charger==true%}ON{%else%}OFF{%endif%}"
-TPL_CLOUD = "{%if value_json.cloud.connected==true%}ON{%else%}OFF{%endif%}"
+TPL_CALIBRATED = "{%if value_json.calibrated%}ON{%else%}OFF{%endif%}"
+TPL_CALIBRATED_AVAILABILITY = (
+    "{%if value_json.calibrated%}online{%else%}offline{%endif%}"
+)
+TPL_CHARGER = "{%if value_json.charger%}ON{%else%}OFF{%endif%}"
+TPL_CLOUD = "{%if value_json.cloud.connected%}ON{%else%}OFF{%endif%}"
 TPL_COLOR_TEMP_WHITE_LIGHT = (
     "{{((1000000/(value_json.temp|int,2700)|max)|round(0,^floor^))}}"
 )
@@ -529,6 +541,7 @@ TPL_COMMAND_PROFILES = "{{value.split(^ ^)[-1]}}"
 TPL_CONCENTRATION = "{%if is_number(value) and 0<=value|int<=65535%}{{value}}{%endif%}"
 TPL_CURRENT_TEMPERATURE = "{{value_json.thermostats.0.tmp.value}}"
 TPL_ENERGY_WMIN = "{{value|float/60}}"
+TPL_EVENT = "{{{^event_type^:value_json.event}|to_json}}"
 TPL_GAS = "{%if value in [^mild^,^heavy^]%}ON{%else%}OFF{%endif%}"
 TPL_GAS_TO_JSON = "{{{^status^:value}|tojson}}"
 TPL_HUMIDITY = "{%if is_number(value) and 0<value|int<999%}{{value}}{%endif%}"
@@ -542,26 +555,28 @@ TPL_IP_FROM_INFO = "{{value_json.wifi_sta.ip}}"
 TPL_LATEST_VERSION = "{%if value_json[^update^].new_version%}{{value_json[^update^].new_version}}{%else%}{{value_json[^update^].old_version}}{%endif%}"
 TPL_MODE = "{%if value_json.thermostats.0.target_t.value==4%}off{%else%}heat{%endif%}"
 TPL_MODE_SET = "{{{{^4^ if value==^off^ else ^{default_heat_temp}^}}}}"
-TPL_MOTION = "{%if value_json.motion==true%}ON{%else%}OFF{%endif%}"
-TPL_MOTION_MOTION = "{%if value_json.sensor.motion==true%}ON{%else%}OFF{%endif%}"
+TPL_MOTION = "{%if value_json.motion%}ON{%else%}OFF{%endif%}"
+TPL_MOTION_MOTION = "{%if value_json.sensor.motion%}ON{%else%}OFF{%endif%}"
 TPL_MQTT_CONNECTED = "{%if value_json.mqtt.connected%}online{%else%}offline{%endif%}"
-TPL_NEW_FIRMWARE_FROM_ANNOUNCE = "{%if value_json.new_fw==true%}ON{%else%}OFF{%endif%}"
+TPL_NEW_FIRMWARE_FROM_ANNOUNCE = "{%if value_json.new_fw%}ON{%else%}OFF{%endif%}"
 TPL_PROFILES = "profile {{value_json.thermostats.0.schedule_profile}}"
 TPL_REPORTED_WINDOW_STATE = (
-    "{%if value_json.thermostats.0.window_open==true%}ON{%else%}OFF{%endif%}"
+    "{%if value_json.thermostats.0.window_open%}ON{%else%}OFF{%endif%}"
 )
 TPL_SCHEDULE = "{{value_json.thermostats.0.schedule}}"
 TPL_VALVE = "{{value.replace(^_^,^ ^)}}"
 TPL_VALVE_MIN_POSITION = "{{value_json.thermostats.0.valve_min_percent}}"
-TPL_VALVE_POSITION = "{{value_json.thermostats.0.pos}}"
+TPL_VALVE_POSITION = (
+    "{%if value_json.thermostats.0.pos!=-1%}{{value_json.thermostats.0.pos}}{%endif%}"
+)
 TPL_WINDOW_STATE_REPORTING = (
-    "{%if value_json.thermostats.0.open_window_report==true%}ON{%else%}OFF{%endif%}"
+    "{%if value_json.thermostats.0.open_window_report%}ON{%else%}OFF{%endif%}"
 )
 
 TPL_NEW_FIRMWARE_FROM_INFO = (
-    "{%if value_json[^update^].has_update==true%}ON{%else%}OFF{%endif%}"
+    "{%if value_json[^update^].has_update%}ON{%else%}OFF{%endif%}"
 )
-TPL_OVERPOWER = "{%if value_json.overpower==true%}ON{%else%}OFF{%endif%}"
+TPL_OVERPOWER = "{%if value_json.overpower%}ON{%else%}OFF{%endif%}"
 TPL_OVERPOWER_RELAY = "{%if value==^overpower^%}ON{%else%}OFF{%endif%}"
 TPL_OVERPOWER_VALUE_TO_JSON = "{{{^overpower_value^:value}|tojson}}"
 TPL_POSITION = "{%if value!=-1%}{{value}}{%endif%}"
@@ -577,8 +592,8 @@ TPL_TEMPERATURE_EXT = "{%if is_number(value) and -100<value|int<999%}{{value}}{%
 TPL_TEMPERATURE_STATUS = "{{value|lower}}"
 TPL_UPDATE_TO_JSON = "{{value_json[^update^]|tojson}}"
 TPL_UPTIME = "{{(as_timestamp(now())-value_json.uptime)|timestamp_local}}"
-TPL_VIBRATION = "{%if value_json.vibration==true%}ON{%else%}OFF{%endif%}"
-TPL_VIBRATION_MOTION = "{%if value_json.sensor.vibration==true%}ON{%else%}OFF{%endif%}"
+TPL_VIBRATION = "{%if value_json.vibration%}ON{%else%}OFF{%endif%}"
+TPL_VIBRATION_MOTION = "{%if value_json.sensor.vibration%}ON{%else%}OFF{%endif%}"
 
 UNIT_AMPERE = "A"
 UNIT_CELSIUS = "°C"
@@ -670,6 +685,10 @@ OPTIONS_NUMBER_VALVE_POSITION = {
     KEY_STATE_TOPIC: TOPIC_INFO,
     KEY_VALUE_TEMPLATE: TPL_VALVE_POSITION,
     KEY_UNIT: UNIT_PERCENT,
+    ATTR_AVAILABILITY_EXTRA: {
+        KEY_TOPIC: TOPIC_INFO,
+        KEY_VALUE_TEMPLATE: TPL_CALIBRATED_AVAILABILITY,
+    },
 }
 OPTIONS_NUMBER_MINIMAL_VALVE_POSITION = {
     KEY_COMMAND_TOPIC: TOPIC_COMMAND_VALVE_MIN,
@@ -902,6 +921,22 @@ OPTIONS_SENSOR_CURRENT_METER = {
     KEY_ENABLED_BY_DEFAULT: False,
     KEY_STATE_CLASS: STATE_CLASS_MEASUREMENT,
     KEY_STATE_TOPIC: TOPIC_METER_CURRENT,
+    KEY_UNIT: UNIT_AMPERE,
+    KEY_SUGGESTED_DISPLAY_PRECISION: 1,
+}
+OPTIONS_SENSOR_N_CURRENT = {
+    KEY_DEVICE_CLASS: DEVICE_CLASS_CURRENT,
+    KEY_ENABLED_BY_DEFAULT: False,
+    KEY_STATE_CLASS: STATE_CLASS_MEASUREMENT,
+    KEY_STATE_TOPIC: TOPIC_N_CURRENT,
+    KEY_UNIT: UNIT_AMPERE,
+    KEY_SUGGESTED_DISPLAY_PRECISION: 1,
+}
+OPTIONS_SENSOR_IX_SUM_CURRENT = {
+    KEY_DEVICE_CLASS: DEVICE_CLASS_CURRENT,
+    KEY_ENABLED_BY_DEFAULT: False,
+    KEY_STATE_CLASS: STATE_CLASS_MEASUREMENT,
+    KEY_STATE_TOPIC: TOPIC_IX_SUM_CURRENT,
     KEY_UNIT: UNIT_AMPERE,
     KEY_SUGGESTED_DISPLAY_PRECISION: 1,
 }
@@ -1355,24 +1390,20 @@ OPTIONS_SENSOR_LOADERROR = {
 
 OPTIONS_UPDATE_FIRMWARE = {
     KEY_COMMAND_TOPIC: TOPIC_COMMAND,
-    KEY_DEVICE_CLASS: "firmware",
     KEY_ENABLED_BY_DEFAULT: True,
     KEY_ENTITY_CATEGORY: ENTITY_CATEGORY_DIAGNOSTIC,
     KEY_VALUE_TEMPLATE: TPL_INSTALLED_VERSION,
     KEY_LATEST_VERSION_TEMPLATE: TPL_LATEST_VERSION,
     KEY_LATEST_VERSION_TOPIC: TOPIC_INFO,
-    KEY_NAME: "Firmware",
     KEY_PAYLOAD_INSTALL: PL_UPDATE_FIRMWARE,
     KEY_STATE_TOPIC: TOPIC_INFO,
 }
 OPTIONS_UPDATE_FIRMWARE_BATTERY_POWERED = {
-    KEY_DEVICE_CLASS: "firmware",
     KEY_ENABLED_BY_DEFAULT: True,
     KEY_ENTITY_CATEGORY: ENTITY_CATEGORY_DIAGNOSTIC,
     KEY_VALUE_TEMPLATE: TPL_INSTALLED_VERSION,
     KEY_LATEST_VERSION_TEMPLATE: TPL_LATEST_VERSION,
     KEY_LATEST_VERSION_TOPIC: TOPIC_INFO,
-    KEY_NAME: "Firmware",
     KEY_STATE_TOPIC: TOPIC_INFO,
 }
 OPTIONS_SENSOR_REPORTED_WINDOW_STATE = {
@@ -2275,6 +2306,8 @@ if model_id == MODEL_SHELLY3EM_ID or dev_id_prefix == MODEL_SHELLY3EM_PREFIX:
         SENSOR_RSSI: OPTIONS_SENSOR_RSSI,
         SENSOR_SSID: OPTIONS_SENSOR_SSID,
         SENSOR_UPTIME: OPTIONS_SENSOR_UPTIME,
+        SENSOR_N_CURRENT: OPTIONS_SENSOR_N_CURRENT,
+        SENSOR_IX_SUM_CURRENT: OPTIONS_SENSOR_IX_SUM_CURRENT,
     }
     buttons = {BUTTON_RESTART: OPTIONS_BUTTON_RESTART}
     updates = {UPDATE_FIRMWARE: OPTIONS_UPDATE_FIRMWARE}
@@ -2430,14 +2463,15 @@ for update, update_options in updates.items():
     ).decode("utf-8")
 
     payload = {
-        KEY_NAME: f"{device_name} {format_entity_name(update)}",
+        KEY_NAME: format_entity_name(update),
         KEY_STATE_TOPIC: update_options[KEY_STATE_TOPIC],
         KEY_VALUE_TEMPLATE: update_options[KEY_VALUE_TEMPLATE],
         KEY_LATEST_VERSION_TOPIC: update_options[KEY_LATEST_VERSION_TOPIC],
         KEY_LATEST_VERSION_TEMPLATE: update_options[KEY_LATEST_VERSION_TEMPLATE],
         KEY_ENTITY_PICTURE: "https://brands.home-assistant.io/_/shelly/icon.png",
         KEY_RELEASE_URL: "https://shelly-api-docs.shelly.cloud/gen1/#changelog",
-        KEY_TITLE: f"{device_name} Firmware",
+        KEY_TITLE: "Firmware",
+        KEY_DEVICE_CLASS: DEVICE_CLASS_FIRMWARE,
         KEY_ENABLED_BY_DEFAULT: str(update_options[KEY_ENABLED_BY_DEFAULT]).lower(),
         KEY_UNIQUE_ID: f"{dev_id}-{update}".lower(),
         KEY_QOS: qos,
@@ -2453,8 +2487,6 @@ for update, update_options in updates.items():
         payload[KEY_PAYLOAD_INSTALL] = update_options[KEY_PAYLOAD_INSTALL]
     if update_options.get(KEY_ENTITY_CATEGORY):
         payload[KEY_ENTITY_CATEGORY] = update_options[KEY_ENTITY_CATEGORY]
-    if update_options.get(KEY_DEVICE_CLASS):
-        payload[KEY_DEVICE_CLASS] = update_options[KEY_DEVICE_CLASS]
     if dev_id.lower() in ignored:
         payload = ""
 
@@ -2466,8 +2498,11 @@ for number, number_options in numbers.items():
         "ascii", "ignore"
     ).decode("utf-8")
 
+    if number_options.get(ATTR_AVAILABILITY_EXTRA):
+        availability.append(number_options[ATTR_AVAILABILITY_EXTRA])
+
     payload = {
-        KEY_NAME: f"{device_name} {format_entity_name(number)}",
+        KEY_NAME: format_entity_name(number),
         KEY_COMMAND_TOPIC: number_options[KEY_COMMAND_TOPIC],
         KEY_MAX: number_options[KEY_MAX],
         KEY_MIN: number_options[KEY_MIN],
@@ -2500,7 +2535,7 @@ for switch, switch_options in switches.items():
     ).decode("utf-8")
 
     payload = {
-        KEY_NAME: f"{device_name} {format_entity_name(switch)}",
+        KEY_NAME: format_entity_name(switch),
         KEY_COMMAND_TOPIC: switch_options[KEY_COMMAND_TOPIC],
         KEY_PAYLOAD_OFF: switch_options[KEY_PAYLOAD_OFF],
         KEY_PAYLOAD_ON: switch_options[KEY_PAYLOAD_ON],
@@ -2533,7 +2568,7 @@ for select, select_options in selectors.items():
     ).decode("utf-8")
 
     payload = {
-        KEY_NAME: f"{device_name} {format_entity_name(select)}",
+        KEY_NAME: format_entity_name(select),
         KEY_COMMAND_TOPIC: select_options[KEY_COMMAND_TOPIC],
         KEY_COMMAND_TEMPLATE: TPL_COMMAND_PROFILES,
         KEY_OPTIONS: select_options[KEY_OPTIONS],
@@ -2564,7 +2599,7 @@ for button, button_options in buttons.items():
     ).decode("utf-8")
 
     payload = {
-        KEY_NAME: f"{device_name} {format_entity_name(button)}",
+        KEY_NAME: format_entity_name(button),
         KEY_COMMAND_TOPIC: button_options[KEY_COMMAND_TOPIC],
         KEY_PAYLOAD_PRESS: button_options[KEY_PAYLOAD_PRESS],
         KEY_ENABLED_BY_DEFAULT: str(button_options[KEY_ENABLED_BY_DEFAULT]).lower(),
@@ -2601,8 +2636,14 @@ if climate_entity_option:
         "ascii", "ignore"
     ).decode("utf-8")
 
+    availability.append(
+        {
+            KEY_TOPIC: TOPIC_INFO,
+            KEY_VALUE_TEMPLATE: TPL_CALIBRATED_AVAILABILITY,
+        }
+    )
+
     payload = {
-        KEY_NAME: device_name,
         KEY_ACTION_TOPIC: TOPIC_INFO,
         KEY_ACTION_TEMPLATE: TPL_ACTION_TEMPLATE.format(
             min_temp=climate_entity_option[KEY_MIN_TEMP]
@@ -2643,7 +2684,7 @@ for roller_id in range(rollers):
     if device_config.get(f"roller-{roller_id}-name"):
         roller_name = device_config[f"roller-{roller_id}-name"]
     else:
-        roller_name = f"{device_name} Roller {roller_id}"
+        roller_name = f"Roller {roller_id}"
     device_class = None
     if device_config.get(f"roller-{roller_id}-class"):
         if device_config[f"roller-{roller_id}-class"] in ROLLER_DEVICE_CLASSES:
@@ -2695,7 +2736,7 @@ for relay_id in range(relays):
     if device_config.get(f"relay-{relay_id}-name"):
         relay_name = device_config[f"relay-{relay_id}-name"]
     else:
-        relay_name = f"{device_name} Relay {relay_id}"
+        relay_name = f"Relay {relay_id}"
     state_topic = f"~relay/{relay_id}"
     config_component = COMP_SWITCH
     if device_config.get(f"relay-{relay_id}"):
@@ -2738,7 +2779,7 @@ for relay_id in range(relays):
         )
 
         payload = {
-            KEY_NAME: f"{device_name} {format_entity_name(sensor)} {relay_id}",
+            KEY_NAME: f"{format_entity_name(sensor)} {relay_id}",
             KEY_STATE_TOPIC: sensor_options[KEY_STATE_TOPIC].format(relay_id=relay_id),
             KEY_AVAILABILITY: availability,
             KEY_FORCE_UPDATE: str(force_update).lower(),
@@ -2781,7 +2822,7 @@ for relay_id in range(relays):
         if device_config.get(f"relay-{relay_id}-name"):
             sensor_name = f"{device_config[f'relay-{relay_id}-name']} {format_entity_name(sensor)}"
         else:
-            sensor_name = f"{device_name} {format_entity_name(sensor)} {relay_id}"
+            sensor_name = f"{format_entity_name(sensor)} {relay_id}"
         if not roller_mode:
             payload = {
                 KEY_NAME: sensor_name,
@@ -2848,16 +2889,20 @@ for sensor, sensor_options in sensors.items():
         unique_id = f"{dev_id}-relay-{sensor}".lower()
     else:
         unique_id = f"{dev_id}-{sensor}".lower()
-    if sensor in (SENSOR_SSID, SENSOR_ADC, SENSOR_IP):
-        sensor_name = f"{device_name} {sensor.upper()}"
+    if sensor in (SENSOR_SSID, SENSOR_ADC):
+        sensor_name = sensor.upper()
+    elif sensor == SENSOR_IP:
+        sensor_name = "IP address"
+    elif sensor == SENSOR_IX_SUM_CURRENT:
+        sensor_name = "IX sum current"
     elif sensor == SENSOR_UPTIME:
-        sensor_name = f"{device_name} Last restart"
+        sensor_name = "Last restart"
     elif sensor == SENSOR_RSSI:
-        sensor_name = f"{device_name} WiFi signal"
+        sensor_name = "WiFi signal"
     elif sensor == SENSOR_TEMPERATURE_F:
-        sensor_name = f"{device_name} Temperature"
+        sensor_name = "Temperature"
     else:
-        sensor_name = f"{device_name} {format_entity_name(sensor)}"
+        sensor_name = format_entity_name(sensor)
 
     payload = {
         KEY_NAME: sensor_name,
@@ -2953,6 +2998,30 @@ for input_id in range(inputs):
 
         mqtt_publish(config_topic, payload, retain)
 
+    # events
+    config_topic = f"{disc_prefix}/event/{dev_id}-input-{input_id}/config".encode(
+        "ascii", "ignore"
+    ).decode("utf-8")
+    unique_id = f"{dev_id}-input-{input_id}".lower()
+
+    payload = {
+        KEY_NAME: f"Button {input_id}",
+        KEY_STATE_TOPIC: f"~input_event/{input_id}",
+        KEY_EVENT_TYPES: list(DEVICE_TRIGGERS_MAP.values()),
+        KEY_VALUE_TEMPLATE: TPL_EVENT,
+        KEY_DEVICE_CLASS: DEVICE_CLASS_BUTTON,
+        KEY_AVAILABILITY: availability,
+        KEY_UNIQUE_ID: unique_id,
+        KEY_QOS: qos,
+        KEY_DEVICE: device_info,
+        "~": default_topic,
+    }
+
+    if dev_id.lower() in ignored:
+        payload = ""
+
+    mqtt_publish(config_topic, payload, retain)
+
 # external temperature sensors
 for sensor_id in range(ext_temp_sensors):
     force_update = False
@@ -2964,7 +3033,7 @@ for sensor_id in range(ext_temp_sensors):
             "ascii", "ignore"
         ).decode("utf-8")
     )
-    sensor_name = f"{device_name} External temperature {sensor_id}"
+    sensor_name = f"External temperature {sensor_id}"
     state_topic = f"~{SENSOR_EXT_TEMPERATURE}/{sensor_id}"
     if device_config.get(f"ext-temperature-{sensor_id}"):
         payload = {
@@ -3000,7 +3069,7 @@ for sensor_id in range(ext_humi_sensors):
             "ascii", "ignore"
         ).decode("utf-8")
     )
-    sensor_name = f"{device_name} External humidity {sensor_id}"
+    sensor_name = f"External humidity {sensor_id}"
     state_topic = f"~{SENSOR_EXT_HUMIDITY}/{sensor_id}"
     if device_config.get(f"ext-temperature-{sensor_id}"):
         payload = {
@@ -3033,9 +3102,9 @@ for sensor, sensor_options in binary_sensors.items():
         ).decode("utf-8")
     )
     if sensor == SENSOR_EXT_SWITCH:
-        sensor_name = f"{device_name} External switch"
+        sensor_name = "External switch"
     else:
-        sensor_name = f"{device_name} {format_entity_name(sensor)}"
+        sensor_name = format_entity_name(sensor)
     state_topic = sensor_options[KEY_STATE_TOPIC]
     payload = {
         KEY_NAME: sensor_name,
@@ -3094,7 +3163,7 @@ for light_id in range(rgbw_lights):
     if device_config.get(f"light-{light_id}-name"):
         light_name = device_config[f"light-{light_id}-name"]
     else:
-        light_name = f"{device_name} Light {light_id}"
+        light_name = f"Light {light_id}"
     state_topic = f"~color/{light_id}"
     status_topic = f"~color/{light_id}/status"
     set_topic = f"~color/{light_id}/set"
@@ -3146,7 +3215,7 @@ for light_id in range(rgbw_lights):
         )
         if mode == LIGHT_COLOR:
             payload = {
-                KEY_NAME: f"{device_name} {format_entity_name(sensor)} {light_id}",
+                KEY_NAME: f"{format_entity_name(sensor)} {light_id}",
                 KEY_STATE_TOPIC: sensor_options[KEY_STATE_TOPIC],
                 KEY_AVAILABILITY: availability,
                 KEY_UNIQUE_ID: f"{dev_id}-color-{sensor}-{light_id}".lower(),
@@ -3182,7 +3251,7 @@ for light_id in range(rgbw_lights):
         )
 
         payload = {
-            KEY_NAME: f"{device_name} {format_entity_name(sensor)} {light_id}",
+            KEY_NAME: f"{format_entity_name(sensor)} {light_id}",
             KEY_STATE_TOPIC: sensor_options[KEY_STATE_TOPIC].format(light_id=light_id),
             KEY_AVAILABILITY: availability,
             KEY_FORCE_UPDATE: str(force_update).lower(),
@@ -3220,7 +3289,7 @@ for light_id, light_options in white_lights.items():
     if device_config.get(f"light-{light_id}-name"):
         light_name = device_config[f"light-{light_id}-name"]
     else:
-        light_name = f"{device_name} Light {light_id}"
+        light_name = f"Light {light_id}"
 
     if model == MODEL_SHELLYRGBW2:
         unique_id = f"{dev_id}-light-white-{light_id}".lower()
@@ -3274,7 +3343,7 @@ for light_id, light_options in white_lights.items():
         )
         if mode != LIGHT_COLOR:
             payload = {
-                KEY_NAME: f"{device_name} {format_entity_name(sensor)} {light_id}",
+                KEY_NAME: f"{format_entity_name(sensor)} {light_id}",
                 KEY_STATE_TOPIC: sensor_options[KEY_STATE_TOPIC].format(
                     light_id=light_id
                 ),
@@ -3312,7 +3381,7 @@ for light_id, light_options in white_lights.items():
         )
 
         payload = {
-            KEY_NAME: f"{device_name} {format_entity_name(sensor)} {light_id}",
+            KEY_NAME: f"{format_entity_name(sensor)} {light_id}",
             KEY_STATE_TOPIC: sensor_options[KEY_STATE_TOPIC].format(light_id=light_id),
             KEY_AVAILABILITY: availability,
             KEY_FORCE_UPDATE: str(force_update).lower(),
@@ -3354,7 +3423,7 @@ for light_id, light_options in white_lights.items():
         )
 
         payload = {
-            KEY_NAME: f"{device_name} {format_entity_name(number)} {light_id}",
+            KEY_NAME: f"{format_entity_name(number)} {light_id}",
             KEY_COMMAND_TOPIC: number_options[KEY_COMMAND_TOPIC].format(
                 light_id=light_id
             ),
@@ -3396,7 +3465,7 @@ for meter_id in range(meters):
         )
 
         payload = {
-            KEY_NAME: f"{device_name} {format_entity_name(sensor)} {meter_id}",
+            KEY_NAME: f"{format_entity_name(sensor)} {meter_id}",
             KEY_STATE_TOPIC: sensor_options[KEY_STATE_TOPIC].format(meter_id=meter_id),
             KEY_AVAILABILITY: availability,
             KEY_FORCE_UPDATE: str(force_update).lower(),
