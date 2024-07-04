@@ -1,6 +1,6 @@
 FROM python:3.10-slim
 
-RUN pip install paho-mqtt certifi
+RUN pip install paho-mqtt certifi pyyaml
 RUN mkdir /app
 
 COPY run.py /app/run.py

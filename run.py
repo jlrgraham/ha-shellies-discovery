@@ -1,6 +1,7 @@
 import paho.mqtt.client as mqtt
 import certifi
 
+import yaml
 import json
 import logging
 import os
@@ -29,6 +30,7 @@ MQTT_PASSWORD = os.getenv("MQTT_PASSWORD", default=None)
 HA_DISCOVERY_PREFIX = os.getenv("HA_DISCOVERY_PREFIX", default="homeassistant")
 HA_STATUS_TOPIC = os.getenv("HA_STATUS_TOPIC", default=None)
 
+DEVICE_CONFIG_FILE = "/config/device-config.yml"
 
 
 class FakeHassServices(object):
@@ -111,6 +113,10 @@ def on_message(client, userdata, msg):
     else:
         event = json.loads(payload)
 
+        # Sigh, some gen 2 devices using gen 1 patterns?
+        if event.get("gen", 1) == 2:
+            return
+
         ha_discovery_payload = {
             "id": event.get("id"),
             "mac": event.get("mac"),
@@ -121,10 +127,15 @@ def on_message(client, userdata, msg):
             "discovery_prefix": HA_DISCOVERY_PREFIX,
         }
 
+        device_config = {}
+        if os.path.exists(DEVICE_CONFIG_FILE):
+            with open(DEVICE_CONFIG_FILE, "r") as f:
+                device_config = yaml.safe_load(f)
+
         exec(
             compiled,
             {
-                "data": ha_discovery_payload,
+                "data": ha_discovery_payload | device_config,
                 "logger": logger,
                 "hass": fakehass,
             },
