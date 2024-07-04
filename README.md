@@ -11,13 +11,15 @@
 
 This script adds MQTT discovery support for Shelly devices in the [Home Assistant](https://home-assistant.io/).
 
-## Gen2 devices information
+## Gen2/3 devices information
 
 Pro/Plus devies are supported by [Shellies Discovery Gen2 script](https://github.com/bieniu/ha-shellies-discovery-gen2).
 
 ## Prerequisites
 
 This script needs Home Assistant `python_script` component so, if you never used it, I strongly suggest you to follow the [official instruction](https://www.home-assistant.io/integrations/python_script#writing-your-first-script) and check that `python_script` is properly configured and it's working.
+
+MQTT integration must be configured in Home Assistant.
 
 ## Installation
 
@@ -46,7 +48,7 @@ Go to [HA community](https://community.home-assistant.io/t/shellies-discovery-sc
 - Shelly DUO
 - Shelly EM
 - Shelly Flood
-- Shelly Gas
+- Shelly Gas (with Valve Add-on)
 - Shelly H&T (battery or USB powered)
 - Shelly i3
 - Shelly Motion (battery or USB powered)
@@ -224,6 +226,8 @@ python_script:
         light-3-name: "Kitchen"
       shellyem-BB23CC45:
         force_update_sensors: true
+      shellygas-AABBCC332211:
+        valve_connected: true
       ignored_devices:
         - shelly1-DD0011
         - shellyem-EECC22
@@ -265,9 +269,13 @@ key | optional | type | default | possible values | description
 `ext-switch` | True | boolean | `false` | `true`, `false` | presence of external switch
 `force_update_sensors` | True | boolean | `false` | `true`, `false` | [force update](https://www.home-assistant.io/integrations/sensor.mqtt/#force_update) for sensors
 `powered` | True | string | `battery` | `ac`, `battery` | `ac` or `battery` powered for Shelly H&T, Motion, Sense and Button1
-`expire_after` | True | integer | 51840 | | [expire after](https://www.home-assistant.io/integrations/binary_sensor.mqtt/#expire_after) for battery powered sensors in seconds
+`expire_after` | True | integer | `51840` | | [expire after](https://www.home-assistant.io/integrations/binary_sensor.mqtt/#expire_after) for battery powered sensors in seconds
 `use_fahrenheit` | True | boolean | `false` | `true`, `false` | whether the temperature sensor is configured in Fahrenheit for H&T, Flood, Motion2 or DW2
 `default_heating_temperature` | True | float | `20` | | default target temperature after changing from OFF to HEAT mode
+`minimal_valve_position` | True | int | `0` | | this value should be equal to the MINIMAL VALVE POSITION LIMIT from Shelly Valve configuration
+`valve_connected` | True | boolean | `false` | `true`, `false` | is the Valve Add-on connected to Shelly Gas
+`humidity_topic` | True | string | | | Topic with humidity value ​​to display in the Shelly Valve climate entity
+
 
 [releases]: https://github.com/bieniu/ha-shellies-discovery/releases
 [releases-shield]: https://img.shields.io/github/release/bieniu/ha-shellies-discovery.svg?style=popout

@@ -1,22 +1,25 @@
 repos:
-  - repo: https://github.com/charliermarsh/ruff-pre-commit
-    rev: v0.0.280
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.4.8
     hooks:
       - id: ruff
         args:
           - --fix
         files: ^((python_scripts)/.+)?[^/]+\.py$
-  - repo: https://github.com/psf/black
-    rev: 23.7.0
-    hooks:
-      - id: black
-        args:
-          - --safe
-          - --quiet
+      - id: ruff-format
         files: ^((python_scripts)/.+)?[^/]+\.py$
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.4.0
+    rev: v4.6.0
     hooks:
+      - id: check-toml
+      - id: check-json
+      - id: check-yaml
+      - id: end-of-file-fixer
+      - id: mixed-line-ending
+      - id: trailing-whitespace
+      - id: pretty-format-json
+        args:
+          - --no-sort-keys
       - id: no-commit-to-branch
         args:
           - --branch=master

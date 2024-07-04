@@ -1,5 +1,7 @@
 """This script adds MQTT discovery support for Shellies devices."""
 
+VERSION = "5.1.0"
+
 ATTR_ICON = "icon"
 ATTR_MANUFACTURER = "Allterco Robotics"
 ATTR_POWER_AC = "ac"
@@ -30,10 +32,12 @@ CONF_FORCE_UPDATE_SENSORS = "force_update_sensors"
 CONF_FRIENDLY_NAME = "friendly_name"
 CONF_FW_VER = "fw_ver"
 CONF_HOST = "host"
+CONF_HUMIDITY_TOPIC = "humidity_topic"
 CONF_ID = "id"
 CONF_IGNORE_DEVICE_MODEL = "ignore_device_model"
 CONF_IGNORED_DEVICES = "ignored_devices"
 CONF_MAC = "mac"
+CONF_MINIMAL_VALVE_POSITION = "minimal_valve_position"
 CONF_MODE = "mode"
 CONF_MODEL_ID = "model"
 CONF_OPTIMISTIC = "optimistic"
@@ -42,6 +46,7 @@ CONF_POWERED = "powered"
 CONF_QOS = "qos"
 CONF_SET_POSITION_TEMPLATE = "set_position_template"
 CONF_USE_FAHRENHEIT = "use_fahrenheit"
+CONF_VALVE_CONNECTED = "valve_connected"
 
 DEFAULT_DISC_PREFIX = "homeassistant"
 
@@ -117,6 +122,7 @@ KEY_COMMAND_TEMPLATE = "cmd_tpl"
 KEY_COMMAND_TOPIC = "cmd_t"
 KEY_CONFIGURATION_URL = "cu"
 KEY_CONNECTIONS = "cns"
+KEY_CURRENT_HUMIDITY_TOPIC = "curr_hum_t"
 KEY_CURRENT_TEMPERATURE_TEMPLATE = "curr_temp_tpl"
 KEY_CURRENT_TEMPERATURE_TOPIC = "curr_temp_t"
 KEY_DEVICE = "dev"
@@ -156,6 +162,7 @@ KEY_NAME = "name"
 KEY_OFF_DELAY = "off_dly"
 KEY_OPTIMISTIC = "opt"
 KEY_OPTIONS = "options"
+KEY_ORIGIN = "o"
 KEY_PAYLOAD = "pl"
 KEY_PAYLOAD_AVAILABLE = "pl_avail"
 KEY_PAYLOAD_CLOSE = "pl_cls"
@@ -171,6 +178,7 @@ KEY_POSITION_TOPIC = "pos_t"
 KEY_PRECISION = "precision"
 KEY_QOS = "qos"
 KEY_RELEASE_URL = "rel_u"
+KEY_REPORTS_POSITION = "pos"
 KEY_RETAIN = "ret"
 KEY_RGBW_COMMAND_TEMPLATE = "rgbw_cmd_tpl"
 KEY_RGBW_COMMAND_TOPIC = "rgbw_cmd_t"
@@ -191,6 +199,7 @@ KEY_STATE_VALUE_TEMPLATE = "stat_val_tpl"
 KEY_STEP = "step"
 KEY_SUBTYPE = "stype"
 KEY_SUGGESTED_DISPLAY_PRECISION = "sug_dsp_prc"
+KEY_SUPPORT_URL = "url"
 KEY_SW_VERSION = "sw"
 KEY_TEMP_STEP = "temp_step"
 KEY_TEMPERATURE_COMMAND_TEMPLATE = "temp_cmd_tpl"
@@ -222,8 +231,8 @@ MIN_MOTION_FIRMWARE_DATE = 20220517
 # Firmware 2.1.4-rc1 release date
 MIN_MOTION2_FIRMWARE_DATE = 20220301
 
-# Firmware 2.1.6 release date
-MIN_VALVE_FIRMWARE_DATE = 20220612
+# Firmware 2.2.1 release date
+MIN_VALVE_FIRMWARE_DATE = 20231009
 
 # Firmware 1.11.7 release date
 MIN_DIMMER_FIRMWARE_DATE = 20211109
@@ -433,6 +442,8 @@ SENSOR_WINDOW_STATE_REPORTING = "window_state_reporting"
 
 UPDATE_FIRMWARE = "firmware"
 
+VALVE_GAS = "gas"
+
 STATE_CLASS_MEASUREMENT = "measurement"
 STATE_CLASS_TOTAL_INCREASING = "total_increasing"
 
@@ -518,7 +529,7 @@ TOPIC_WHITE_SET = "~white/{light_id}/set"
 TOPIC_WHITE_STATUS = "~white/{light_id}/status"
 
 TPL_ACCELERATED_HEATING = "{{value_json.thermostats.0.target_t.accelerated_heating}}"
-TPL_ACTION_TEMPLATE = "{{%if value_json.thermostats.0.target_t.value<={min_temp}%}}off{{%elif value_json.thermostats.0.pos==0%}}idle{{%else%}}heating{{%endif%}}"
+TPL_ACTION_TEMPLATE = "{{%if value_json.thermostats.0.target_t.value<={min_temp}%}}off{{%elif value_json.thermostats.0.pos=={min_pos}%}}idle{{%else%}}heating{{%endif%}}"
 TPL_AUTOMATIC_TEMPERATURE_CONTROL = (
     "{%if value_json.target_t.enabled%}ON{%else%}OFF{%endif%}"
 )
@@ -541,7 +552,9 @@ TPL_COMMAND_PROFILES = "{{value.split(^ ^)[-1]}}"
 TPL_CONCENTRATION = "{%if is_number(value) and 0<=value|int<=65535%}{{value}}{%endif%}"
 TPL_CURRENT_TEMPERATURE = "{{value_json.thermostats.0.tmp.value}}"
 TPL_ENERGY_WMIN = "{{value|float/60}}"
-TPL_EVENT = "{{{^event_type^:value_json.event}|to_json}}"
+TPL_EVENT = (
+    "{%if value_json.event%}{{{^event_type^:value_json.event}|to_json}}{%endif%}"
+)
 TPL_GAS = "{%if value in [^mild^,^heavy^]%}ON{%else%}OFF{%endif%}"
 TPL_GAS_TO_JSON = "{{{^status^:value}|tojson}}"
 TPL_HUMIDITY = "{%if is_number(value) and 0<value|int<999%}{{value}}{%endif%}"
@@ -565,6 +578,8 @@ TPL_REPORTED_WINDOW_STATE = (
 )
 TPL_SCHEDULE = "{{value_json.thermostats.0.schedule}}"
 TPL_VALVE = "{{value.replace(^_^,^ ^)}}"
+TPL_VALVE_STATE = "{%if value==^opened^%}open{%elif value in (^closed^,^closing^,^opening^)%}{{value}}{%endif%}"
+TPL_VALVE_AVAILABILITY = "{%if value in (^closed^,^closing^,^opened^,^opening^)%}online{%else%}offline{%endif%}"
 TPL_VALVE_MIN_POSITION = "{{value_json.thermostats.0.valve_min_percent}}"
 TPL_VALVE_POSITION = (
     "{%if value_json.thermostats.0.pos!=-1%}{{value_json.thermostats.0.pos}}{%endif%}"
@@ -661,18 +676,6 @@ OPTIONS_BUTTON_RESTART = {
     KEY_ENABLED_BY_DEFAULT: True,
     KEY_DEVICE_CLASS: DEVICE_CLASS_RESTART,
     KEY_ENTITY_CATEGORY: ENTITY_CATEGORY_CONFIG,
-}
-OPTIONS_BUTTON_VALVE_CLOSE = {
-    KEY_COMMAND_TOPIC: TOPIC_VALVE_COMMAND,
-    KEY_PAYLOAD_PRESS: PL_CLOSE,
-    KEY_ENABLED_BY_DEFAULT: False,
-    KEY_ICON: "mdi:progress-close",
-}
-OPTIONS_BUTTON_VALVE_OPEN = {
-    KEY_COMMAND_TOPIC: TOPIC_VALVE_COMMAND,
-    KEY_PAYLOAD_PRESS: PL_OPEN,
-    KEY_ENABLED_BY_DEFAULT: False,
-    KEY_ICON: "mdi:progress-check",
 }
 OPTIONS_NUMBER_VALVE_POSITION = {
     KEY_COMMAND_TOPIC: TOPIC_COMMAND_VALVE_POSITION,
@@ -966,7 +969,7 @@ OPTIONS_SENSOR_UPTIME = {
 }
 OPTIONS_SENSOR_VALVE = {
     KEY_DEVICE_CLASS: DEVICE_CLASS_ENUM,
-    KEY_ENABLED_BY_DEFAULT: False,
+    KEY_ENABLED_BY_DEFAULT: True,
     KEY_ENTITY_CATEGORY: ENTITY_CATEGORY_DIAGNOSTIC,
     KEY_ICON: "mdi:pipe-valve",
     KEY_STATE_TOPIC: TOPIC_VALVE,
@@ -1414,22 +1417,36 @@ OPTIONS_SENSOR_REPORTED_WINDOW_STATE = {
     KEY_STATE_TOPIC: TOPIC_INFO,
     KEY_VALUE_TEMPLATE: TPL_REPORTED_WINDOW_STATE,
 }
-
 OPTIONS_SENSOR_WINDOW_STATE_REPORTING = {
     KEY_ENABLED_BY_DEFAULT: False,
-    KEY_ENTITY_CATEGORY: ENTITY_CATEGORY_CONFIG,
+    KEY_ENTITY_CATEGORY: ENTITY_CATEGORY_DIAGNOSTIC,
     KEY_NAME: "Window state reporting",
     KEY_STATE_TOPIC: TOPIC_SETTINGS,
     KEY_VALUE_TEMPLATE: TPL_WINDOW_STATE_REPORTING,
 }
-
 OPTIONS_SENSOR_AUTOMATIC_TEMPERATURE_CONTROL = {
     KEY_ENABLED_BY_DEFAULT: True,
-    KEY_ENTITY_CATEGORY: ENTITY_CATEGORY_CONFIG,
+    KEY_ENTITY_CATEGORY: ENTITY_CATEGORY_DIAGNOSTIC,
     KEY_NAME: "Automatic temperature control",
     KEY_STATE_TOPIC: TOPIC_STATUS,
     KEY_VALUE_TEMPLATE: TPL_AUTOMATIC_TEMPERATURE_CONTROL,
     KEY_ICON: "mdi:thermostat-auto",
+}
+
+OPTIONS_VALVE_GAS = {
+    KEY_DEVICE_CLASS: DEVICE_CLASS_GAS,
+    KEY_ENABLED_BY_DEFAULT: True,
+    KEY_STATE_TOPIC: TOPIC_VALVE,
+    KEY_VALUE_TEMPLATE: TPL_VALVE_STATE,
+    KEY_NAME: "Valve",
+    KEY_COMMAND_TOPIC: TOPIC_VALVE_COMMAND,
+    KEY_PAYLOAD_OPEN: VALUE_OPEN,
+    KEY_PAYLOAD_CLOSE: VALUE_CLOSE,
+    KEY_REPORTS_POSITION: False,
+    ATTR_AVAILABILITY_EXTRA: {
+        KEY_TOPIC: TOPIC_VALVE,
+        KEY_VALUE_TEMPLATE: TPL_VALVE_AVAILABILITY,
+    },
 }
 
 ROLLER_DEVICE_CLASSES = [
@@ -1527,7 +1544,8 @@ if mode == "roller":
     roller_mode = True
 
 ignored = [
-    element.lower() for element in data.get(CONF_IGNORED_DEVICES, [])  # noqa: F821
+    element.lower()
+    for element in data.get(CONF_IGNORED_DEVICES, [])  # noqa: F821
 ]
 mac = data.get(CONF_MAC)  # noqa: F821
 
@@ -1622,6 +1640,7 @@ numbers = {}
 selectors = {}
 sensors = {}
 switches = {}
+valves = {}
 white_lights = {}
 
 if model_id == MODEL_SHELLY1_ID or dev_id_prefix == MODEL_SHELLY1_PREFIX:
@@ -1793,7 +1812,7 @@ if model_id == MODEL_SHELLY25_ID or dev_id_prefix == MODEL_SHELLY25_PREFIX:
 if model_id == MODEL_SHELLYUNI_ID or dev_id_prefix == MODEL_SHELLYUNI_PREFIX:
     model = MODEL_SHELLYUNI
 
-    inputs = 1
+    inputs = 2
     relays = 2
     ext_humi_sensors = 1
     ext_temp_sensors = 3
@@ -1807,7 +1826,10 @@ if model_id == MODEL_SHELLYUNI_ID or dev_id_prefix == MODEL_SHELLYUNI_PREFIX:
         SENSOR_SSID: OPTIONS_SENSOR_SSID,
         SENSOR_UPTIME: OPTIONS_SENSOR_UPTIME,
     }
-    binary_sensors = {SENSOR_INPUT_0: OPTIONS_SENSOR_INPUT_0}
+    binary_sensors = {
+        SENSOR_INPUT_0: OPTIONS_SENSOR_INPUT_0,
+        SENSOR_INPUT_1: OPTIONS_SENSOR_INPUT_1,
+    }
     buttons = {BUTTON_RESTART: OPTIONS_BUTTON_RESTART}
     updates = {UPDATE_FIRMWARE: OPTIONS_UPDATE_FIRMWARE}
 
@@ -1972,10 +1994,11 @@ if model_id == MODEL_SHELLYGAS_ID or dev_id_prefix == MODEL_SHELLYGAS_PREFIX:
         BUTTON_RESTART: OPTIONS_BUTTON_RESTART,
         BUTTON_SELF_TEST: OPTIONS_BUTTON_SELF_TEST,
         BUTTON_UNMUTE: OPTIONS_BUTTON_UNMUTE,
-        BUTTON_VALVE_CLOSE: OPTIONS_BUTTON_VALVE_CLOSE,
-        BUTTON_VALVE_OPEN: OPTIONS_BUTTON_VALVE_OPEN,
+        BUTTON_VALVE_CLOSE: {},
+        BUTTON_VALVE_OPEN: {},
     }
     updates = {UPDATE_FIRMWARE: OPTIONS_UPDATE_FIRMWARE}
+    valves = {VALVE_GAS: OPTIONS_VALVE_GAS}
 
 if (
     model_id in (MODEL_SHELLYBUTTON1_ID, MODEL_SHELLYBUTTON1V2_ID)
@@ -2413,6 +2436,11 @@ device_info = {
     KEY_MANUFACTURER: ATTR_MANUFACTURER,
     KEY_CONFIGURATION_URL: f"http://{host}/",
 }
+origin_info = {
+    KEY_NAME: "Shellies Discovery",
+    KEY_SW_VERSION: VERSION,
+    KEY_SUPPORT_URL: "https://github.com/bieniu/ha-shellies-discovery",
+}
 
 default_topic = f"shellies/{dev_id}/"
 
@@ -2476,6 +2504,7 @@ for update, update_options in updates.items():
         KEY_UNIQUE_ID: f"{dev_id}-{update}".lower(),
         KEY_QOS: qos,
         KEY_DEVICE: device_info,
+        KEY_ORIGIN: origin_info,
         "~": default_topic,
     }
     if battery_powered and model not in (MODEL_SHELLYDW, MODEL_SHELLYDW2):
@@ -2515,8 +2544,10 @@ for number, number_options in numbers.items():
         KEY_QOS: qos,
         KEY_AVAILABILITY: availability,
         KEY_DEVICE: device_info,
+        KEY_ORIGIN: origin_info,
         "~": default_topic,
     }
+
     if number_options.get(KEY_ENTITY_CATEGORY):
         payload[KEY_ENTITY_CATEGORY] = number_options[KEY_ENTITY_CATEGORY]
     if number_options.get(KEY_DEVICE_CLASS):
@@ -2548,6 +2579,7 @@ for switch, switch_options in switches.items():
         KEY_QOS: qos,
         KEY_AVAILABILITY: availability,
         KEY_DEVICE: device_info,
+        KEY_ORIGIN: origin_info,
         "~": default_topic,
     }
     if switch_options.get(KEY_ENTITY_CATEGORY):
@@ -2579,6 +2611,7 @@ for select, select_options in selectors.items():
         KEY_QOS: qos,
         KEY_AVAILABILITY: availability,
         KEY_DEVICE: device_info,
+        KEY_ORIGIN: origin_info,
         "~": default_topic,
     }
     if select_options.get(KEY_ENTITY_CATEGORY):
@@ -2600,13 +2633,16 @@ for button, button_options in buttons.items():
 
     payload = {
         KEY_NAME: format_entity_name(button),
-        KEY_COMMAND_TOPIC: button_options[KEY_COMMAND_TOPIC],
-        KEY_PAYLOAD_PRESS: button_options[KEY_PAYLOAD_PRESS],
-        KEY_ENABLED_BY_DEFAULT: str(button_options[KEY_ENABLED_BY_DEFAULT]).lower(),
+        KEY_COMMAND_TOPIC: button_options.get(KEY_COMMAND_TOPIC),
+        KEY_PAYLOAD_PRESS: button_options.get(KEY_PAYLOAD_PRESS),
+        KEY_ENABLED_BY_DEFAULT: str(
+            button_options.get(KEY_ENABLED_BY_DEFAULT, False)
+        ).lower(),
         KEY_UNIQUE_ID: f"{dev_id}-{button}".lower(),
         KEY_QOS: qos,
         KEY_AVAILABILITY: availability,
         KEY_DEVICE: device_info,
+        KEY_ORIGIN: origin_info,
         "~": default_topic,
     }
     if button_options.get(KEY_ENTITY_CATEGORY):
@@ -2617,12 +2653,19 @@ for button, button_options in buttons.items():
         payload[KEY_ICON] = button_options[ATTR_ICON]
     if dev_id.lower() in ignored:
         payload = ""
+    if not button_options:
+        payload = ""
 
     mqtt_publish(config_topic, payload, retain)
 
 # climate entities
 if climate_entity_option:
     default_heat_temp = 20
+    minimal_valve_position = device_config.get(CONF_MINIMAL_VALVE_POSITION, 0)
+    if not isinstance(minimal_valve_position, int):
+        raise TypeError(
+            f"minimal_valve_position value {minimal_valve_position} is not an integer, check script configuration"
+        )
     if device_config.get(CONF_DEFAULT_HEAT_TEMP):
         value = device_config[CONF_DEFAULT_HEAT_TEMP]
         if (
@@ -2646,7 +2689,8 @@ if climate_entity_option:
     payload = {
         KEY_ACTION_TOPIC: TOPIC_INFO,
         KEY_ACTION_TEMPLATE: TPL_ACTION_TEMPLATE.format(
-            min_temp=climate_entity_option[KEY_MIN_TEMP]
+            min_temp=climate_entity_option[KEY_MIN_TEMP],
+            min_pos=minimal_valve_position,
         ),
         KEY_CURRENT_TEMPERATURE_TOPIC: TOPIC_INFO,
         KEY_CURRENT_TEMPERATURE_TEMPLATE: TPL_CURRENT_TEMPERATURE,
@@ -2666,8 +2710,13 @@ if climate_entity_option:
         KEY_QOS: qos,
         KEY_AVAILABILITY: availability,
         KEY_DEVICE: device_info,
+        KEY_ORIGIN: origin_info,
         "~": default_topic,
     }
+
+    if device_config.get(CONF_HUMIDITY_TOPIC):
+        payload[KEY_CURRENT_HUMIDITY_TOPIC] = device_config[CONF_HUMIDITY_TOPIC]
+
     payload.update(climate_entity_option)
     if dev_id.lower() in ignored:
         payload = ""
@@ -2718,6 +2767,7 @@ for roller_id in range(rollers):
             KEY_OPTIMISTIC: str(optimistic).lower(),
             KEY_QOS: qos,
             KEY_DEVICE: device_info,
+            KEY_ORIGIN: origin_info,
             "~": default_topic,
         }
         if set_position_template:
@@ -2758,6 +2808,7 @@ for relay_id in range(relays):
                 KEY_UNIQUE_ID: f"{dev_id}-relay-{relay_id}".lower(),
                 KEY_QOS: qos,
                 KEY_DEVICE: device_info,
+                KEY_ORIGIN: origin_info,
                 "~": default_topic,
             }
         else:
@@ -2787,6 +2838,7 @@ for relay_id in range(relays):
             KEY_UNIQUE_ID: f"{dev_id}-relay-{sensor}-{relay_id}".lower(),
             KEY_QOS: qos,
             KEY_DEVICE: device_info,
+            KEY_ORIGIN: origin_info,
             "~": default_topic,
         }
         if sensor_options.get(KEY_SUGGESTED_DISPLAY_PRECISION):
@@ -2816,9 +2868,7 @@ for relay_id in range(relays):
     for sensor, sensor_options in relay_binary_sensors.items():
         config_topic = f"{disc_prefix}/binary_sensor/{dev_id}-{make_id(sensor)}-{relay_id}/config".encode(
             "ascii", "ignore"
-        ).decode(
-            "utf-8"
-        )
+        ).decode("utf-8")
         if device_config.get(f"relay-{relay_id}-name"):
             sensor_name = f"{device_config[f'relay-{relay_id}-name']} {format_entity_name(sensor)}"
         else:
@@ -2836,6 +2886,7 @@ for relay_id in range(relays):
                 KEY_UNIQUE_ID: f"{dev_id}-{make_id(sensor)}-{relay_id}".lower(),
                 KEY_QOS: qos,
                 KEY_DEVICE: device_info,
+                KEY_ORIGIN: origin_info,
                 "~": default_topic,
             }
             if sensor_options.get(KEY_ENTITY_CATEGORY):
@@ -2860,9 +2911,9 @@ for relay_id in range(relays):
                 )
                 and sensor == SENSOR_OVERPOWER
             ):
-                payload[
-                    KEY_JSON_ATTRIBUTES_TOPIC
-                ] = f"~{sensor}/{relay_id}/{TOPIC_OVERPOWER_VALUE}"
+                payload[KEY_JSON_ATTRIBUTES_TOPIC] = (
+                    f"~{sensor}/{relay_id}/{TOPIC_OVERPOWER_VALUE}"
+                )
                 payload[KEY_JSON_ATTRIBUTES_TEMPLATE] = TPL_OVERPOWER_VALUE_TO_JSON
         else:
             payload = ""
@@ -2912,6 +2963,7 @@ for sensor, sensor_options in sensors.items():
         KEY_UNIQUE_ID: unique_id,
         KEY_QOS: qos,
         KEY_DEVICE: device_info,
+        KEY_ORIGIN: origin_info,
         "~": default_topic,
     }
     if sensor_options.get(KEY_SUGGESTED_DISPLAY_PRECISION):
@@ -2949,6 +3001,8 @@ for sensor, sensor_options in sensors.items():
         and not roller_mode
     ):
         payload = ""
+    if sensor == SENSOR_VALVE and not device_config.get(CONF_VALVE_CONNECTED, False):
+        payload = ""
     if dev_id.lower() in ignored:
         payload = ""
 
@@ -2958,9 +3012,7 @@ for sensor, sensor_options in sensors.items():
 for input_id in range(inputs):
     config_topic = f"{disc_prefix}/device_automation/{dev_id}-input-{input_id}/button_release/config".encode(
         "ascii", "ignore"
-    ).decode(
-        "utf-8"
-    )
+    ).decode("utf-8")
     topic = f"shellies/{dev_id}/input/{input_id}"
     payload = {
         KEY_AUTOMATION_TYPE: VALUE_TRIGGER,
@@ -2980,9 +3032,7 @@ for input_id in range(inputs):
     for event in inputs_types:
         config_topic = f"{disc_prefix}/device_automation/{dev_id}-input-{input_id}/{event}/config".encode(
             "ascii", "ignore"
-        ).decode(
-            "utf-8"
-        )
+        ).decode("utf-8")
         payload = {
             KEY_AUTOMATION_TYPE: VALUE_TRIGGER,
             KEY_TOPIC: topic,
@@ -3014,6 +3064,7 @@ for input_id in range(inputs):
         KEY_UNIQUE_ID: unique_id,
         KEY_QOS: qos,
         KEY_DEVICE: device_info,
+        KEY_ORIGIN: origin_info,
         "~": default_topic,
     }
 
@@ -3049,6 +3100,7 @@ for sensor_id in range(ext_temp_sensors):
             KEY_UNIQUE_ID: unique_id,
             KEY_QOS: qos,
             KEY_DEVICE: device_info,
+            KEY_ORIGIN: origin_info,
             "~": default_topic,
         }
     else:
@@ -3085,6 +3137,7 @@ for sensor_id in range(ext_humi_sensors):
             KEY_UNIQUE_ID: unique_id,
             KEY_QOS: qos,
             KEY_DEVICE: device_info,
+            KEY_ORIGIN: origin_info,
             "~": default_topic,
         }
     else:
@@ -3113,6 +3166,7 @@ for sensor, sensor_options in binary_sensors.items():
         KEY_UNIQUE_ID: f"{dev_id}-{make_id(sensor)}".lower(),
         KEY_QOS: qos,
         KEY_DEVICE: device_info,
+        KEY_ORIGIN: origin_info,
         "~": default_topic,
     }
     if sensor_options.get(KEY_ICON):
@@ -3197,6 +3251,7 @@ for light_id in range(rgbw_lights):
             KEY_UNIQUE_ID: unique_id,
             KEY_QOS: qos,
             KEY_DEVICE: device_info,
+            KEY_ORIGIN: origin_info,
             "~": default_topic,
         }
     else:
@@ -3210,9 +3265,7 @@ for light_id in range(rgbw_lights):
     for sensor, sensor_options in light_binary_sensors.items():
         config_topic = f"{disc_prefix}/binary_sensor/{dev_id}-color-{sensor}-{light_id}/config".encode(
             "ascii", "ignore"
-        ).decode(
-            "utf-8"
-        )
+        ).decode("utf-8")
         if mode == LIGHT_COLOR:
             payload = {
                 KEY_NAME: f"{format_entity_name(sensor)} {light_id}",
@@ -3221,6 +3274,7 @@ for light_id in range(rgbw_lights):
                 KEY_UNIQUE_ID: f"{dev_id}-color-{sensor}-{light_id}".lower(),
                 KEY_QOS: qos,
                 KEY_DEVICE: device_info,
+                KEY_ORIGIN: origin_info,
                 "~": default_topic,
             }
             if sensor_options.get(KEY_ENTITY_CATEGORY):
@@ -3259,6 +3313,7 @@ for light_id in range(rgbw_lights):
             KEY_UNIQUE_ID: f"{dev_id}-color-{sensor}-{light_id}".lower(),
             KEY_QOS: qos,
             KEY_DEVICE: device_info,
+            KEY_ORIGIN: origin_info,
             "~": default_topic,
         }
         if sensor_options.get(KEY_SUGGESTED_DISPLAY_PRECISION):
@@ -3317,6 +3372,7 @@ for light_id, light_options in white_lights.items():
         KEY_UNIQUE_ID: unique_id,
         KEY_QOS: str(qos),
         KEY_DEVICE: device_info,
+        KEY_ORIGIN: origin_info,
         "~": default_topic,
     }
 
@@ -3338,9 +3394,7 @@ for light_id, light_options in white_lights.items():
     for sensor, sensor_options in light_binary_sensors.items():
         config_topic = f"{disc_prefix}/binary_sensor/{dev_id}-white-{sensor}-{light_id}/config".encode(
             "ascii", "ignore"
-        ).decode(
-            "utf-8"
-        )
+        ).decode("utf-8")
         if mode != LIGHT_COLOR:
             payload = {
                 KEY_NAME: f"{format_entity_name(sensor)} {light_id}",
@@ -3351,6 +3405,7 @@ for light_id, light_options in white_lights.items():
                 KEY_UNIQUE_ID: f"{dev_id}-white-{sensor}-{light_id}".lower(),
                 KEY_QOS: qos,
                 KEY_DEVICE: device_info,
+                KEY_ORIGIN: origin_info,
                 "~": default_topic,
             }
             if sensor_options.get(KEY_ENTITY_CATEGORY):
@@ -3389,6 +3444,7 @@ for light_id, light_options in white_lights.items():
             KEY_UNIQUE_ID: f"{dev_id}-white-{sensor}-{light_id}".lower(),
             KEY_QOS: qos,
             KEY_DEVICE: device_info,
+            KEY_ORIGIN: origin_info,
             "~": default_topic,
         }
         if sensor_options.get(KEY_SUGGESTED_DISPLAY_PRECISION):
@@ -3439,6 +3495,7 @@ for light_id, light_options in white_lights.items():
             KEY_QOS: qos,
             KEY_AVAILABILITY: availability,
             KEY_DEVICE: device_info,
+            KEY_ORIGIN: origin_info,
             "~": default_topic,
         }
         if number_options.get(KEY_ENTITY_CATEGORY):
@@ -3473,6 +3530,7 @@ for meter_id in range(meters):
             KEY_UNIQUE_ID: f"{dev_id}-emeter-{sensor}-{meter_id}".lower(),
             KEY_QOS: qos,
             KEY_DEVICE: device_info,
+            KEY_ORIGIN: origin_info,
             "~": default_topic,
         }
         if sensor_options.get(KEY_SUGGESTED_DISPLAY_PRECISION):
@@ -3495,3 +3553,42 @@ for meter_id in range(meters):
             payload = ""
 
         mqtt_publish(config_topic, payload, retain)
+
+# valves
+for valve, valve_options in valves.items():
+    config_topic = f"{disc_prefix}/valve/{dev_id}-{make_id(valve)}/config".encode(
+        "ascii", "ignore"
+    ).decode("utf-8")
+
+    if valve_options.get(ATTR_AVAILABILITY_EXTRA):
+        availability.append(valve_options[ATTR_AVAILABILITY_EXTRA])
+
+    payload = {
+        KEY_NAME: valve_options.get(KEY_NAME),
+        KEY_COMMAND_TOPIC: valve_options.get(KEY_COMMAND_TOPIC),
+        KEY_STATE_TOPIC: valve_options.get(KEY_STATE_TOPIC),
+        KEY_VALUE_TEMPLATE: valve_options.get(KEY_VALUE_TEMPLATE),
+        KEY_PAYLOAD_OPEN: valve_options.get(KEY_PAYLOAD_OPEN),
+        KEY_PAYLOAD_CLOSE: valve_options.get(KEY_PAYLOAD_CLOSE),
+        KEY_REPORTS_POSITION: str(
+            valve_options.get(KEY_REPORTS_POSITION, False)
+        ).lower(),
+        KEY_ENABLED_BY_DEFAULT: str(sensor_options[KEY_ENABLED_BY_DEFAULT]).lower(),
+        KEY_AVAILABILITY: availability,
+        KEY_UNIQUE_ID: f"{dev_id}-{valve}".lower(),
+        KEY_QOS: qos,
+        KEY_DEVICE: device_info,
+        KEY_ORIGIN: origin_info,
+        "~": default_topic,
+    }
+
+    if valve_options.get(KEY_DEVICE_CLASS):
+        payload[KEY_DEVICE_CLASS] = valve_options[KEY_DEVICE_CLASS]
+    if model == MODEL_SHELLYGAS and not device_config.get(CONF_VALVE_CONNECTED, False):
+        payload = ""
+    if not valve_options:
+        payload = ""
+    if dev_id.lower() in ignored:
+        payload = ""
+
+    mqtt_publish(config_topic, payload, retain)
