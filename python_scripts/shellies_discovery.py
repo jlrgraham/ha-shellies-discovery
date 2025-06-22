@@ -434,6 +434,7 @@ SENSOR_TILT = "tilt"
 SENSOR_TOTAL = "total"
 SENSOR_TOTAL_RETURNED = "total_returned"
 SENSOR_TOTALWORKTIME = "totalworktime"
+SENSOR_UNIQUEID = "uniqueid"
 SENSOR_UPTIME = "uptime"
 SENSOR_VALVE = "valve"
 SENSOR_VIBRATION = "vibration"
@@ -605,6 +606,7 @@ TPL_TEMPERATURE = "{%if is_number(value) and -100<value|int<900%}{{value}}{%endi
 TPL_TEMPERATURE_MOTION = "{{value_json.tmp.value}}"
 TPL_TEMPERATURE_EXT = "{%if is_number(value) and -100<value|int<999%}{{value}}{%endif%}"
 TPL_TEMPERATURE_STATUS = "{{value|lower}}"
+TPL_UNIQUEID = "{{value_json.fw_info.device}}"
 TPL_UPDATE_TO_JSON = "{{value_json[^update^]|tojson}}"
 TPL_UPTIME = "{{(as_timestamp(now())-value_json.uptime)|timestamp_local}}"
 TPL_VIBRATION = "{%if value_json.vibration%}ON{%else%}OFF{%endif%}"
@@ -959,6 +961,13 @@ OPTIONS_SENSOR_SSID = {
     KEY_ICON: "mdi:wifi-settings",
     KEY_STATE_TOPIC: TOPIC_INFO,
     KEY_VALUE_TEMPLATE: TPL_SSID,
+}
+OPTIONS_SENSOR_UNIQUEID = {
+    KEY_ENABLED_BY_DEFAULT: True,
+    KEY_ENTITY_CATEGORY: ENTITY_CATEGORY_DIAGNOSTIC,
+    KEY_ICON: "mdi:identifier",
+    KEY_STATE_TOPIC: TOPIC_INFO,
+    KEY_VALUE_TEMPLATE: TPL_UNIQUEID,
 }
 OPTIONS_SENSOR_UPTIME = {
     KEY_DEVICE_CLASS: DEVICE_CLASS_TIMESTAMP,
@@ -2484,6 +2493,10 @@ availability = [
     },
 ]
 
+# unique ID
+sensors[SENSOR_UNIQUEID] = OPTIONS_SENSOR_UNIQUEID
+
+
 # updates
 for update, update_options in updates.items():
     config_topic = f"{disc_prefix}/update/{dev_id}-{update}/config".encode(
@@ -2952,6 +2965,8 @@ for sensor, sensor_options in sensors.items():
         sensor_name = "WiFi signal"
     elif sensor == SENSOR_TEMPERATURE_F:
         sensor_name = "Temperature"
+    elif sensor == SENSOR_UNIQUEID:
+        sensor_name = "Unique ID"
     else:
         sensor_name = format_entity_name(sensor)
 
