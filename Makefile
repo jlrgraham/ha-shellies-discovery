@@ -4,13 +4,16 @@ DOCKER_TAG ?= latest
 DOCKER_NAME := $(DOCKER_IMAGE):$(DOCKER_TAG)
 
 build:
-	docker build --tag $(DOCKER_NAME) .
-
+	docker buildx \
+		$@ \
+		--platform linux/amd64,linux/arm64 \
+		--tag $(DOCKER_NAME) \
+		.
 push:
-	docker push $(DOCKER_NAME)
+	docker $@ $(DOCKER_NAME)
 
 run:
-	docker run \
+	docker $@ \
 		-it \
 		--rm \
 		-e LOG_LEVEL=DEBUG \
