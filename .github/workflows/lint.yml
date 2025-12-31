@@ -8,32 +8,28 @@ on:
 
 jobs:
   lint:
+    name: Lint
     runs-on: ubuntu-latest
     strategy:
       matrix:
         python-version:
-          - "3.12"
+          - "3.13"
 
     steps:
     - name: Check out repository
       uses: actions/checkout@v4
-      with:
-        fetch-depth: 2
 
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v5
+    - name: Set up uv
+      uses: astral-sh/setup-uv@v5.4.0
       with:
-        python-version: ${{ matrix.python-version }}
+        enable-cache: true
+        python-version: 3.13
 
     - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install -r requirements-test.txt
+      run: uv pip install -r requirements-test.txt
 
     - name: Lint with ruff
-      run: |
-        ruff python_scripts
+      run: ruff check python_scripts
 
     - name: Check code formatting with ruff
-      run: |
-        ruff format --check python_scripts
+      run: ruff format --check python_scripts
